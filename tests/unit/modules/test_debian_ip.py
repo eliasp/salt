@@ -265,7 +265,8 @@ class DebianIpTestCase(TestCase, LoaderModuleMockMixin):
             with patch.dict(debian_ip.__grains__, {'osfullname': 'Ubuntu',
                                                    'osrelease': '10'}):
                 mock = MagicMock(return_value=True)
-                with patch.dict(debian_ip.__salt__, {'service.available': mock,
+                with patch.dict(debian_ip.__salt__, {'file.is_link': mock,
+                                                     'service.available': mock,
                                                      'service.disable': mock,
                                                      'service.enable': mock}):
                     mock = MagicMock(side_effect=jinja2.exceptions.TemplateNotFound
