@@ -314,7 +314,7 @@ def _save_task_definition(name,
 
         log.debug('Failed to modify task: %s', failure_code)
 
-        return 'Failed to modify task: {0}'.format(failure_code)
+        return False, 'Failed to modify task: {0}'.format(failure_code)
 
 
 def list_tasks(location='\\'):
@@ -580,10 +580,10 @@ def create_task_from_xml(name,
     # Check for existing task
     if name in list_tasks(location):
         # Connect to an existing task definition
-        return '{0} already exists'.format(name)
+        return False, '{0} already exists'.format(name)
 
     if not xml_text and not xml_path:
-        return 'Must specify either xml_text or xml_path'
+        return False, 'Must specify either xml_text or xml_path'
 
     # Create the task service object
     with salt.utils.winapi.Com():
@@ -875,7 +875,7 @@ def edit_task(name=None,
 
         # Make sure a name was passed
         if not name:
-            return 'Required parameter "name" not passed'
+            return False, 'Required parameter "name" not passed'
 
         # Make sure task exists to modify
         if name in list_tasks(location):
@@ -893,7 +893,7 @@ def edit_task(name=None,
 
         else:
             # Not found and create_new not set, return not found
-            return '{0} not found'.format(name)
+            return False, '{0} not found'.format(name)
 
     # General Information
     if save_definition:
@@ -947,12 +947,12 @@ def edit_task(name=None,
             if idle_duration in duration:
                 task_definition.Settings.IdleSettings.IdleDuration = _lookup_first(duration, idle_duration)
             else:
-                return 'Invalid value for "idle_duration"'
+                return False, 'Invalid value for "idle_duration"'
         if idle_wait_timeout is not None:
             if idle_wait_timeout in duration:
                 task_definition.Settings.IdleSettings.WaitTimeout = _lookup_first(duration, idle_wait_timeout)
             else:
-                return 'Invalid value for "idle_wait_timeout"'
+                return False, 'Invalid value for "idle_wait_timeout"'
 
     # Settings: Conditions Tab (Power)
     if ac_only is not None:
@@ -984,13 +984,13 @@ def edit_task(name=None,
             if restart_every in duration:
                 task_definition.Settings.RestartInterval = _lookup_first(duration, restart_every)
             else:
-                return 'Invalid value for "restart_every"'
+                return False, 'Invalid value for "restart_every"'
     if task_definition.Settings.RestartInterval:
         if restart_count is not None:
             if restart_count in range(1, 999):
                 task_definition.Settings.RestartCount = restart_count
             else:
-                return '"restart_count" must be a value between 1 and 999'
+                return False, '"restart_count" must be a value between 1 and 999'
     if execution_time_limit is not None:
         if execution_time_limit is False:
             task_definition.Settings.ExecutionTimeLimit = 'PT0S'
@@ -998,7 +998,7 @@ def edit_task(name=None,
             if execution_time_limit in duration:
                 task_definition.Settings.ExecutionTimeLimit = _lookup_first(duration, execution_time_limit)
             else:
-                return 'Invalid value for "execution_time_limit"'
+                return False, 'Invalid value for "execution_time_limit"'
     if force_stop is not None:
         task_definition.Settings.AllowHardTerminate = force_stop
     if delete_after is not None:
@@ -1008,7 +1008,7 @@ def edit_task(name=None,
         if delete_after in duration:
             task_definition.Settings.DeleteExpiredTaskAfter = _lookup_first(duration, delete_after)
         else:
-            return 'Invalid value for "delete_after"'
+            return False, 'Invalid value for "delete_after"'
     if multiple_instances is not None:
         task_definition.Settings.MultipleInstances = instances[multiple_instances]
 
@@ -1044,7 +1044,7 @@ def delete_task(name, location='\\'):
     '''
     # Check for existing task
     if name not in list_tasks(location):
-        return '{0} not found in {1}'.format(name, location)
+        return False, '{0} not found in {1}'.format(name, location)
 
     # connect to the task scheduler
     with salt.utils.winapi.Com():
@@ -1084,7 +1084,7 @@ def delete_folder(name, location='\\'):
     '''
     # Check for existing folder
     if name not in list_folders(location):
-        return '{0} not found in {1}'.format(name, location)
+        return False, '{0} not found in {1}'.format(name, location)
 
     # connect to the task scheduler
     with salt.utils.winapi.Com():
@@ -1125,7 +1125,7 @@ def run(name, location='\\'):
     '''
     # Check for existing folder
     if name not in list_tasks(location):
-        return '{0} not found in {1}'.format(name, location)
+        return False, '{0} not found in {1}'.format(name, location)
 
     # connect to the task scheduler
     with salt.utils.winapi.Com():
@@ -1140,7 +1140,7 @@ def run(name, location='\\'):
         task.Run('')
         return True
     except pythoncom.com_error as error:
-        return False
+        return False, 'Failed to run task "{0}": {1}'.format(name, error)
 
 
 def run_wait(name, location='\\'):
@@ -1183,8 +1183,8 @@ def run_wait(name, location='\\'):
         task.Run('')
         time.sleep(1)
         running = True
-    except pythoncom.com_error:
-        return False
+    except pythoncom.com_error as error:
+        return False, 'Failed to run task "{0}": {1}'.format(name, error)
 
     while running:
         running = False
@@ -1221,7 +1221,7 @@ def stop(name, location='\\'):
     '''
     # Check for existing folder
     if name not in list_tasks(location):
-        return '{0} not found in {1}'.format(name, location)
+        return False, '{0} not found in {1}'.format(name, location)
 
     # connect to the task scheduler
     with salt.utils.winapi.Com():
@@ -1236,7 +1236,7 @@ def stop(name, location='\\'):
         task.Stop(0)
         return True
     except pythoncom.com_error as error:
-        return False
+        return False, 'Failed to stop task "{0}": {1}'.format(name, error)
 
 
 def status(name, location='\\'):
@@ -1267,7 +1267,7 @@ def status(name, location='\\'):
     '''
     # Check for existing folder
     if name not in list_tasks(location):
-        return '{0} not found in {1}'.format(name, location)
+        return False, '{0} not found in {1}'.format(name, location)
 
     # connect to the task scheduler
     with salt.utils.winapi.Com():
@@ -1302,7 +1302,7 @@ def info(name, location='\\'):
     '''
     # Check for existing folder
     if name not in list_tasks(location):
-        return '{0} not found in {1}'.format(name, location)
+        return False, '{0} not found in {1}'.format(name, location)
 
     # connect to the task scheduler
     with salt.utils.winapi.Com():
@@ -1495,7 +1495,7 @@ def add_action(name=None,
         save_definition = True
         # Make sure a name was passed
         if not name:
-            return 'Required parameter "name" not passed'
+            return False, 'Required parameter "name" not passed'
 
         # Make sure task exists
         if name in list_tasks(location):
@@ -1513,7 +1513,7 @@ def add_action(name=None,
 
         else:
             # Not found and create_new not set, return not found
-            return '{0} not found'.format(name)
+            return False, '{0} not found'.format(name)
 
     # Action Settings
     task_action = task_definition.Actions.Create(action_types[action_type])
@@ -1522,7 +1522,7 @@ def add_action(name=None,
         if kwargs.get('cmd', False):
             task_action.Path = kwargs.get('cmd')
         else:
-            return 'Required parameter "cmd" not found'
+            return False, 'Required parameter "cmd" not found'
         task_action.Arguments = kwargs.get('arguments', '')
         task_action.WorkingDirectory = kwargs.get('start_in', '')
 
@@ -1533,12 +1533,12 @@ def add_action(name=None,
         if kwargs.get('server', False):
             task_action.Server = kwargs.get('server')
         else:
-            return 'Required parameter "server" not found'
+            return False, 'Required parameter "server" not found'
 
         if kwargs.get('from', False):
             task_action.From = kwargs.get('from')
         else:
-            return 'Required parameter "from" not found'
+            return False, 'Required parameter "from" not found'
 
         if kwargs.get('to', False) or kwargs.get('cc', False):
             if kwargs.get('to'):
@@ -1546,7 +1546,7 @@ def add_action(name=None,
             if kwargs.get('cc'):
                 task_action.Cc = kwargs.get('cc')
         else:
-            return 'Required parameter "to" or "cc" not found'
+            return False, 'Required parameter "to" or "cc" not found'
 
         # Optional Parameters
         if kwargs.get('reply_to'):
@@ -1566,12 +1566,12 @@ def add_action(name=None,
         if kwargs.get('title', False):
             task_action.Title = kwargs.get('title')
         else:
-            return 'Required parameter "title" not found'
+            return False, 'Required parameter "title" not found'
 
         if kwargs.get('message', False):
             task_action.MessageBody = kwargs.get('message')
         else:
-            return 'Required parameter "message" not found'
+            return False, 'Required parameter "message" not found'
 
     # Save the task
     if save_definition:
@@ -1605,7 +1605,7 @@ def _clear_actions(name, location='\\'):
     # TODO: action.
     # Check for existing task
     if name not in list_tasks(location):
-        return '{0} not found in {1}'.format(name, location)
+        return False, '{0} not found in {1}'.format(name, location)
 
     # Create the task service object
     with salt.utils.winapi.Com():
@@ -1885,7 +1885,7 @@ def add_trigger(name=None,
         salt 'minion-id' task.add_trigger <task_name> trigger_type=Once trigger_enabled=True start_date=2016/12/1 start_time='"12:01"'
     '''
     if not trigger_type:
-        return 'Required parameter "trigger_type" not specified'
+        return False, 'Required parameter "trigger_type" not specified'
 
     # Define lookup dictionaries
     state_changes = {'ConsoleConnect': 1,
@@ -1960,7 +1960,7 @@ def add_trigger(name=None,
         if date_format:
             dt_obj = datetime.strptime(start_date, date_format)
         else:
-            return 'Invalid start_date'
+            return False, 'Invalid start_date'
     else:
         dt_obj = datetime.now()
 
@@ -1969,7 +1969,7 @@ def add_trigger(name=None,
         if time_format:
             tm_obj = datetime.strptime(start_time, time_format)
         else:
-            return 'Invalid start_time'
+            return False, 'Invalid start_time'
     else:
         tm_obj = datetime.strptime('00:00:00', '%H:%M:%S')
 
@@ -1983,14 +1983,14 @@ def add_trigger(name=None,
         if date_format:
             dt_obj = datetime.strptime(end_date, date_format)
         else:
-            return 'Invalid end_date'
+            return False, 'Invalid end_date'
 
     if end_time:
         time_format = _get_date_time_format(end_time)
         if time_format:
             tm_obj = datetime.strptime(end_time, time_format)
         else:
-            return 'Invalid end_time'
+            return False, 'Invalid end_time'
     else:
         tm_obj = datetime.strptime('00:00:00', '%H:%M:%S')
 
@@ -2006,7 +2006,7 @@ def add_trigger(name=None,
         save_definition = True
         # Make sure a name was passed
         if not name:
-            return 'Required parameter "name" not passed'
+            return False, 'Required parameter "name" not passed'
 
         # Make sure task exists
         if name in list_tasks(location):
@@ -2024,7 +2024,7 @@ def add_trigger(name=None,
 
         else:
             # Not found and create_new not set, return not found
-            return '{0} not found'.format(name)
+            return False, '{0} not found'.format(name)
 
     # Create a New Trigger
     trigger = task_definition.Triggers.Create(trigger_types[trigger_type])
@@ -2056,7 +2056,7 @@ def add_trigger(name=None,
             trigger.Id = 'Event_ID1'
             trigger.Subscription = kwargs.get('subscription')
         else:
-            return 'Required parameter "subscription" not passed'
+            return False, 'Required parameter "subscription" not passed'
 
     elif trigger_types[trigger_type] == TASK_TRIGGER_TIME:
         trigger.Id = 'Once_ID1'
@@ -2076,7 +2076,7 @@ def add_trigger(name=None,
                 bits_days |= weekdays[weekday]
             trigger.DaysOfWeek = bits_days
         else:
-            return 'Required parameter "days_of_week" not passed'
+            return False, 'Required parameter "days_of_week" not passed'
 
     # Monthly Trigger Parameters
     elif trigger_types[trigger_type] == TASK_TRIGGER_MONTHLY:
@@ -2087,7 +2087,7 @@ def add_trigger(name=None,
                 bits_months |= months[month]
             trigger.MonthsOfYear = bits_months
         else:
-            return 'Required parameter "months_of_year" not passed'
+            return False, 'Required parameter "months_of_year" not passed'
 
         if kwargs.get('days_of_month', False) or \
                 kwargs.get('last_day_of_month', False):
@@ -2098,7 +2098,7 @@ def add_trigger(name=None,
                 trigger.DaysOfMonth = bits_days
             trigger.RunOnLastDayOfMonth = kwargs.get('last_day_of_month', False)
         else:
-            return 'Monthly trigger requires "days_of_month" or "last_day_of_month" parameters'
+            return False, 'Monthly trigger requires "days_of_month" or "last_day_of_month" parameters'
 
     # Monthly Day Of Week Trigger Parameters
     elif trigger_types[trigger_type] == TASK_TRIGGER_MONTHLYDOW:
@@ -2109,7 +2109,7 @@ def add_trigger(name=None,
                 bits_months |= months[month]
             trigger.MonthsOfYear = bits_months
         else:
-            return 'Required parameter "months_of_year" not passed'
+            return False, 'Required parameter "months_of_year" not passed'
 
         if kwargs.get('weeks_of_month', False) or \
                 kwargs.get('last_week_of_month', False):
@@ -2120,7 +2120,7 @@ def add_trigger(name=None,
                 trigger.WeeksOfMonth = bits_weeks
             trigger.RunOnLastWeekOfMonth = kwargs.get('last_week_of_month', False)
         else:
-            return 'Monthly DOW trigger requires "weeks_of_month" or "last_week_of_month" parameters'
+            return False, 'Monthly DOW trigger requires "weeks_of_month" or "last_week_of_month" parameters'
 
         if kwargs.get('days_of_week', False):
             bits_days = 0
@@ -2128,7 +2128,7 @@ def add_trigger(name=None,
                 bits_days |= weekdays[weekday]
             trigger.DaysOfWeek = bits_days
         else:
-            return 'Required parameter "days_of_week" not passed'
+            return False, 'Required parameter "days_of_week" not passed'
 
     # On Idle Trigger Parameters
     elif trigger_types[trigger_type] == TASK_TRIGGER_IDLE:
@@ -2154,7 +2154,7 @@ def add_trigger(name=None,
         if kwargs.get('state_change', False):
             trigger.StateChange = state_changes[kwargs.get('state_change')]
         else:
-            return 'Required parameter "state_change" not passed'
+            return False, 'Required parameter "state_change" not passed'
 
     # Save the task
     if save_definition:
@@ -2188,7 +2188,7 @@ def clear_triggers(name, location='\\'):
     '''
     # Check for existing task
     if name not in list_tasks(location):
-        return '{0} not found in {1}'.format(name, location)
+        return False, '{0} not found in {1}'.format(name, location)
 
     # Create the task service object
     with salt.utils.winapi.Com():
