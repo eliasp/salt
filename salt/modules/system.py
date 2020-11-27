@@ -14,11 +14,8 @@ Support for reboot, shutdown, etc on POSIX-like systems.
 
 import os.path
 import re
-
-# Import Python libs
 from datetime import datetime, timedelta, tzinfo
 
-# Import Salt libs
 import salt.utils.files
 import salt.utils.path
 import salt.utils.platform
@@ -652,6 +649,10 @@ NILRT_REBOOT_WITNESS_PATH = "/var/volatile/tmp/salt/reboot_witnessed"
 @depends("_is_nilrt_family")
 def set_reboot_required_witnessed():
     """
+    .. note::
+
+        This only applies to Minions running on NI Linux RT
+
     This function is used to remember that an event indicating that a reboot is
     required was witnessed. This function writes to a temporary filesystem so
     the event gets cleared upon reboot.
@@ -682,6 +683,10 @@ def set_reboot_required_witnessed():
 @depends("_is_nilrt_family")
 def get_reboot_required_witnessed():
     """
+    .. note::
+
+        This only applies to Minions running on NI Linux RT
+
     Determine if at any time during the current boot session the salt minion
     witnessed an event indicating that a reboot is required.
 
