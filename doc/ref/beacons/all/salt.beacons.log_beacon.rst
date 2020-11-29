@@ -1,5 +1,5 @@
-salt.beacons.log module
-=======================
+salt.beacons.log
+================
 
 .. automodule:: salt.beacons.log
     :members:
